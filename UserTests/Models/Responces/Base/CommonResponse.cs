@@ -1,6 +1,5 @@
 ﻿using System.Net;
 
-
 namespace UserTests.Models.Responces.Base
 {
     public class CommonResponse<T>
@@ -13,5 +12,9 @@ namespace UserTests.Models.Responces.Base
 
         public T Body;
 
+        public static implicit operator CommonResponse<T>(Task<CommonResponse<object>> v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

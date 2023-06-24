@@ -4,6 +4,17 @@ namespace UserTests.Utils
 {
     public class UserGenerator
     {
+
+        public GetAllUsersRequests GetAllUsersRequests(int pageNumber, RegisterUserRequest filter)
+        {
+            return new GetAllUsersRequests()
+            {
+                PageNumber = pageNumber,
+                Filter = filter,
+            };
+        }
+
+
         public RegisterUserRequest GenerateRegisterUserRequest(string name, string surname)
         {
             return new RegisterUserRequest()

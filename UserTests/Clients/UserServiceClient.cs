@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,15 +12,20 @@ using UserTests.Models.Responces.Base;
 
 namespace UserTests.Clients
 {
-    public class UserServiceClient : BaseClientService
+    public class UserServiceClient : BaseClientService , IObservable<int> , IUserServiceClient
     {
+
+        private readonly ConcurrentBag<IObserver<int>> _observers = new ConcurrentBag<IObserver<int>>();
+        private static readonly Lazy<UserServiceClient> _lazy = new Lazy<UserServiceClient>(() => new UserServiceClient());
+
+        public static UserServiceClient Instance = _lazy.Value;
 
         public UserServiceClient ()
         {
             _baseUrl = "https://userservice-uat.azurewebsites.net";
         }
 
-        public async Task<CommonResponse<Object>> RegisterUser(RegisterUserRequest request)
+        public async Task<CommonResponse<Int32>> RegisterUser(RegisterUserRequest request)
         {
             var httpRequestMessage = new HttpRequestMessage
             {
@@ -30,7 +36,10 @@ namespace UserTests.Clients
 
             HttpResponseMessage response = await _httpClient.SendAsync(httpRequestMessage);
 
-            return await response.ToCommonResponse<Object>();
+            if (response.IsSuccessStatusCode)
+                NotifyAllObservers(int.Parse(response.Content.ReadAsStringAsync().Result));
+
+            return await response.ToCommonResponse<Int32>();
         }
 
         public async Task<CommonResponse<object>> GetUserStatus(int id)
@@ -71,5 +80,45 @@ namespace UserTests.Clients
 
             return await response.ToCommonResponse<object>();
         }
+
+        public async Task<CommonResponse<GetAllUsersResponse>> GetAllUsers (GetAllUsersRequests request)
+        {
+            var httpRequestMessage = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri($"{_baseUrl}/UserManagement/GetAllUsers"),
+                Content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json")
+            };
+
+
+            HttpResponseMessage response = await _httpClient.SendAsync(httpRequestMessage);
+
+            return await response.ToCommonResponse<GetAllUsersResponse>();
+        }
+
+        public IDisposable Subscribe(IObserver<int> observer)
+        {
+            _observers.Add(observer);
+            return null;
+        }
+
+        public void NotifyAllObservers (int id)
+        {
+            foreach(IObserver<int> observer in _observers)
+            {
+                observer.OnNext(id);
+            }
+        }
+    }
+
+    public interface IUserServiceClient
+    {
+        Task<CommonResponse<Int32>> RegisterUser(RegisterUserRequest request);
+        Task<CommonResponse<object>> GetUserStatus(int id);
+        Task<CommonResponse<object>> DeleteUser(int id);
+        Task<CommonResponse<object>> UpdateUser(int id, bool status);
+        Task<CommonResponse<GetAllUsersResponse>> GetAllUsers(GetAllUsersRequests request);
+
+
     }
 }

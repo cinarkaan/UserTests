@@ -8,7 +8,7 @@ using WalletTests.Models.Responces;
 
 namespace UserTests.Models.Responces
 {
-    public class TransactionsJson
+    public class GetAllTransactionsResponse
     {
         [JsonProperty("")]
         public GetTransactionsResponse TransactionsResponse { get; set; }
